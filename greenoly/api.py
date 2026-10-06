@@ -24,3 +24,31 @@ class Lesson:
     index: int
 
 
+def _bracket_match(text: str, start: int) -> int:
+    """Return the index just past the JSON array that begins at ``start``."""
+    if text[start] != "[":
+        raise ValueError("expected '['")
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+    raise ValueError("unbalanced JSON array")
+
+
