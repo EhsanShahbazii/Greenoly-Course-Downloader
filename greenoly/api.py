@@ -16,3 +16,11 @@ import requests
 from .config import SITE
 
 
+@dataclass
+class Lesson:
+    id: str
+    title: str
+    section: str
+    index: int
+
+
