@@ -52,3 +52,11 @@ def _bracket_match(text: str, start: int) -> int:
     raise ValueError("unbalanced JSON array")
 
 
+def _get_rsc(session: requests.Session, url: str) -> str:
+    resp = session.get(url, headers={"RSC": "1"}, allow_redirects=True, timeout=60)
+    resp.raise_for_status()
+    # Without this the Persian titles come back as mojibake.
+    resp.encoding = "utf-8"
+    return resp.text
+
+
