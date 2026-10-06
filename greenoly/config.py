@@ -34,3 +34,31 @@ SUPPORTED_BROWSERS = (
 )
 
 
+@dataclass
+class Settings:
+    """Everything the downloader needs, resolved from the command line."""
+
+    url: str
+    output: Path = field(default_factory=lambda: Path(DEFAULT_OUTPUT))
+    cookies_file: Path | None = None
+    browser: str | None = None
+    single: bool = False
+    limit: int | None = None
+    workers: int = DEFAULT_WORKERS
+    max_segments: int | None = None
+    quality: str = "best"
+    retries: int = DEFAULT_RETRIES
+    quiet: bool = False
+
+    @property
+    def max_height(self) -> int | None:
+        """Requested vertical resolution, or ``None`` for the best variant."""
+        value = (self.quality or "best").strip().lower()
+        if value in {"best", "max", "highest", ""}:
+            return None
+        if value.endswith("p"):
+            value = value[:-1]
+        try:
+            return int(value)
+        except ValueError:
+            return None
