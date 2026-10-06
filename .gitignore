@@ -1,0 +1,21 @@
+# secrets & local data
+greenoly.tv_cookies.txt
+*.har
+cookies.txt
+
+# downloads
+downloads/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# editors / os
+.DS_Store
+.idea/
+.vscode/
