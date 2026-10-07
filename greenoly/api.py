@@ -60,3 +60,15 @@ def _get_rsc(session: requests.Session, url: str) -> str:
     return resp.text
 
 
+def fetch_course_sections(session: requests.Session, lesson_url: str) -> list[dict]:
+    """Return the raw ``sections`` array of the course that owns ``lesson_url``."""
+    text = _get_rsc(session, lesson_url)
+    key = '"sections":'
+    idx = text.find(key)
+    if idx == -1:
+        raise RuntimeError("Could not find the course structure in the page response")
+    arr_start = text.index("[", idx + len(key))
+    arr_end = _bracket_match(text, arr_start)
+    return json.loads(text[arr_start:arr_end])
+
+
