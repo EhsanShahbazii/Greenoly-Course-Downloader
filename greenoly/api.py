@@ -72,3 +72,21 @@ def fetch_course_sections(session: requests.Session, lesson_url: str) -> list[di
     return json.loads(text[arr_start:arr_end])
 
 
+def flatten_lessons(sections: list[dict]) -> list[Lesson]:
+    lessons: list[Lesson] = []
+    counter = 0
+    for section in sections:
+        section_title = (section.get("title") or "").strip()
+        for raw in section.get("lessons") or []:
+            counter += 1
+            lessons.append(
+                Lesson(
+                    id=raw["id"],
+                    title=(raw.get("title") or raw["id"]).strip(),
+                    section=section_title,
+                    index=counter,
+                )
+            )
+    return lessons
+
+
