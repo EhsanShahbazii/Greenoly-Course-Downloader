@@ -115,3 +115,10 @@ def resolve_lesson_url(session: requests.Session, url: str) -> str:
     return f"{course_base_from_url(url)}/lessons/{match.group(1)}"
 
 
+def find_lesson(sections: list[dict], lesson_id: str) -> Lesson | None:
+    for lesson in flatten_lessons(sections):
+        if lesson.id == lesson_id:
+            return lesson
+    return None
+
+
