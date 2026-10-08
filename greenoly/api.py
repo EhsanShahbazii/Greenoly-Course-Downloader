@@ -97,3 +97,10 @@ def lesson_id_from_url(url: str) -> str:
     return match.group(1)
 
 
+def course_base_from_url(url: str) -> str:
+    match = re.match(r"(https?://[^/]+/courses/[^/]+)", url)
+    if not match:
+        raise SystemExit("Could not find the course base URL")
+    return match.group(1)
+
+
