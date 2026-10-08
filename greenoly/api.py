@@ -104,3 +104,14 @@ def course_base_from_url(url: str) -> str:
     return match.group(1)
 
 
+def resolve_lesson_url(session: requests.Session, url: str) -> str:
+    """Accept a course URL too, deriving a lesson URL from its first lesson."""
+    if "/lessons/" in url:
+        return url
+    text = _get_rsc(session, url)
+    match = re.search(r"/lessons/([A-Za-z0-9]{16,})", text)
+    if not match:
+        raise SystemExit("Could not find any lesson in the course page")
+    return f"{course_base_from_url(url)}/lessons/{match.group(1)}"
+
+
