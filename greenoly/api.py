@@ -90,3 +90,10 @@ def flatten_lessons(sections: list[dict]) -> list[Lesson]:
     return lessons
 
 
+def lesson_id_from_url(url: str) -> str:
+    match = re.search(r"/lessons/([A-Za-z0-9]+)", url)
+    if not match:
+        raise SystemExit("Could not find a lesson id in the URL")
+    return match.group(1)
+
+
