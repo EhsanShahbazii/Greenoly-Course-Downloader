@@ -122,3 +122,5 @@ def find_lesson(sections: list[dict], lesson_id: str) -> Lesson | None:
     return None
 
 
+def lesson_page_url(course_base: str, lesson_id: str) -> str:
+    return f"{SITE}{course_base.split(SITE, 1)[-1]}/lessons/{lesson_id}"
