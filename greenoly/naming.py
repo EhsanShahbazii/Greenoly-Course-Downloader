@@ -22,3 +22,5 @@ def lesson_filename(lesson: Lesson) -> str:
     return f"{lesson.index:03d} - {safe_name(lesson.title)}.mp4"
 
 
+def section_folder(name: str) -> str:
+    return safe_name(name) if name else "."
