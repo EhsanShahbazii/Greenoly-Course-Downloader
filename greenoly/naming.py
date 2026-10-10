@@ -10,3 +10,10 @@ _BAD_CHARS = re.compile(r'[\\/:*?"<>|\r\n\t]+')
 _SPACES = re.compile(r"\s+")
 
 
+def safe_name(name: str, maxlen: int = 120) -> str:
+    """Strip characters that are illegal on macOS/Windows/Linux filesystems."""
+    cleaned = _BAD_CHARS.sub(" ", name or "")
+    cleaned = _SPACES.sub(" ", cleaned).strip().strip(".")
+    return (cleaned or "untitled")[:maxlen]
+
+
