@@ -17,3 +17,8 @@ def safe_name(name: str, maxlen: int = 120) -> str:
     return (cleaned or "untitled")[:maxlen]
 
 
+def lesson_filename(lesson: Lesson) -> str:
+    """``001 - Intro.mp4`` — numbered so the order matches the course."""
+    return f"{lesson.index:03d} - {safe_name(lesson.title)}.mp4"
+
+
