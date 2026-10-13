@@ -32,3 +32,20 @@ def load_netscape_cookies(path: str | Path) -> list[dict]:
     return cookies
 
 
+def _jar_to_dicts(jar: http.cookiejar.CookieJar, domain: str) -> list[dict]:
+    cookies: list[dict] = []
+    for cookie in jar:
+        host = (cookie.domain or "").lstrip(".")
+        if domain and domain not in host:
+            continue
+        cookies.append(
+            {
+                "name": cookie.name,
+                "value": cookie.value,
+                "domain": cookie.domain or domain,
+                "path": cookie.path or "/",
+            }
+        )
+    return cookies
+
+
