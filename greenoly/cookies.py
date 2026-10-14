@@ -49,3 +49,38 @@ def _jar_to_dicts(jar: http.cookiejar.CookieJar, domain: str) -> list[dict]:
     return cookies
 
 
+def cookies_from_browser(
+    browser: str = "auto",
+    domain: str = COOKIE_DOMAIN,
+) -> tuple[list[dict], str]:
+    """Read ``greenoly.tv`` cookies from an installed browser via browser-cookie3."""
+    try:
+        import browser_cookie3
+    except ImportError as exc:  # pragma: no cover - dependency guard
+        raise SystemExit(
+            "browser-cookie3 is not installed.\n"
+            "  pip install browser-cookie3\n"
+            "or pass --cookies path/to/greenoly.tv_cookies.txt"
+        ) from exc
+
+    candidates = SUPPORTED_BROWSERS if browser in {"auto", ""} else (browser,)
+    errors: list[str] = []
+    for name in candidates:
+        loader = getattr(browser_cookie3, name, None)
+        if loader is None:
+            continue
+        try:
+            jar = loader(domain_name=domain)
+        except Exception as exc:  # noqa: BLE001 - keychain/permission issues
+            errors.append(f"{name}: {type(exc).__name__}")
+            continue
+        cookies = _jar_to_dicts(jar, domain)
+        if cookies:
+            return cookies, name
+    detail = (" (" + ", ".join(errors) + ")") if errors else ""
+    raise SystemExit(
+        f"No {domain} cookies found in any browser{detail}.\n"
+        "Log in to greenoly.tv in your browser first, or export a cookies.txt."
+    )
+
+
