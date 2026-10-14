@@ -21,3 +21,12 @@ class Variant:
         return self.width * self.height
 
 
+@dataclass
+class Segment:
+    url: str
+    offset: int | None = None
+    length: int | None = None
+    key: bytes | None = None
+    iv: bytes | None = None
+
+
