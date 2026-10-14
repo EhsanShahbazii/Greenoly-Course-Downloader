@@ -84,3 +84,13 @@ def cookies_from_browser(
     )
 
 
+def build_session(cookies: list[dict]) -> requests.Session:
+    session = requests.Session()
+    session.headers.update({"User-Agent": USER_AGENT})
+    for cookie in cookies:
+        session.cookies.set(
+            cookie["name"], cookie["value"], domain=cookie["domain"], path=cookie["path"]
+        )
+    return session
+
+
