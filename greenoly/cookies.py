@@ -94,3 +94,17 @@ def build_session(cookies: list[dict]) -> requests.Session:
     return session
 
 
+def resolve_cookies(
+    cookies_file: str | Path | None,
+    browser: str | None,
+) -> tuple[list[dict], str]:
+    """Return ``(cookies, source_description)`` from a file or the browser."""
+    if cookies_file:
+        path = Path(cookies_file)
+        if not path.exists():
+            raise SystemExit(f"Cookie file not found: {path}")
+        cookies = load_netscape_cookies(path)
+        if not cookies:
+            raise SystemExit(f"No cookies parsed from {path}")
+        return cookies, f"file {path.name}"
+    return cookies_from_browser(browser or "auto")
