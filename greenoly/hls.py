@@ -57,3 +57,16 @@ def parse_master(text: str, base_url: str) -> list[Variant]:
     return variants
 
 
+def pick_variant(text: str, base_url: str, max_height: int | None = None) -> Variant | None:
+    """Best variant, optionally capped to ``max_height`` pixels tall."""
+    variants = parse_master(text, base_url)
+    if max_height:
+        capped = [v for v in variants if 0 < v.height <= max_height]
+        if capped:
+            variants = capped
+    if not variants:
+        return None
+    variants.sort(key=lambda v: (v.pixels, v.bandwidth), reverse=True)
+    return variants[0]
+
+
