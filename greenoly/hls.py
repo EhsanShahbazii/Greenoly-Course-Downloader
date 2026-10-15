@@ -70,3 +70,12 @@ def pick_variant(text: str, base_url: str, max_height: int | None = None) -> Var
     return variants[0]
 
 
+def _attr(line: str, name: str) -> str | None:
+    """Read an attribute value, quoted or bare (``IV=0x..`` is often bare)."""
+    match = re.search(rf'{name}=(?:"([^"]*)"|([^,]*))', line)
+    if not match:
+        return None
+    value = match.group(1) if match.group(1) is not None else match.group(2)
+    return value.strip() or None
+
+
