@@ -30,3 +30,30 @@ class Segment:
     iv: bytes | None = None
 
 
+def parse_master(text: str, base_url: str) -> list[Variant]:
+    """Extract every ``EXT-X-STREAM-INF`` entry of a master playlist."""
+    lines = text.splitlines()
+    variants: list[Variant] = []
+    for i, line in enumerate(lines):
+        if not line.startswith("#EXT-X-STREAM-INF"):
+            continue
+        url = ""
+        for follow in lines[i + 1 :]:
+            if follow.strip() and not follow.startswith("#"):
+                url = urljoin(base_url, follow.strip())
+                break
+        if not url:
+            continue
+        resolution = re.search(r"RESOLUTION=(\d+)x(\d+)", line)
+        bandwidth = re.search(r"BANDWIDTH=(\d+)", line)
+        variants.append(
+            Variant(
+                url=url,
+                bandwidth=int(bandwidth.group(1)) if bandwidth else 0,
+                width=int(resolution.group(1)) if resolution else 0,
+                height=int(resolution.group(2)) if resolution else 0,
+            )
+        )
+    return variants
+
+
