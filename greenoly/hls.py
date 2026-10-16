@@ -89,3 +89,65 @@ def _iv(value: str | None, sequence: int) -> bytes | None:
     return sequence.to_bytes(16, "big")
 
 
+def parse_media_playlist(
+    text: str,
+    base_url: str,
+    headers: dict,
+    http: requests.Session,
+) -> list[Segment]:
+    """Parse a media playlist, resolving byte ranges and AES-128 keys."""
+    lines = [line.strip() for line in text.splitlines()]
+    segments: list[Segment] = []
+    current_key: bytes | None = None
+    current_iv: bytes | None = None
+    pending_range: tuple[int, int] | None = None
+    previous_end = 0
+    sequence = 0
+    key_cache: dict[str, bytes] = {}
+
+    for line in lines:
+        if not line:
+            continue
+        if line.startswith("#EXT-X-MEDIA-SEQUENCE:"):
+            sequence = int(line.split(":", 1)[1])
+        elif line.startswith("#EXT-X-KEY:"):
+            method = _attr(line, "METHOD")
+            if method == "NONE":
+                current_key = None
+                current_iv = None
+                continue
+            uri = _attr(line, "URI")
+            current_iv = _iv(_attr(line, "IV"), sequence + len(segments))
+            if uri:
+                key_url = urljoin(base_url, uri)
+                if key_url not in key_cache:
+                    response = http.get(key_url, headers=headers, timeout=60)
+                    response.raise_for_status()
+                    key_cache[key_url] = response.content
+                current_key = key_cache[key_url]
+        elif line.startswith("#EXT-X-BYTERANGE:"):
+            spec = line.split(":", 1)[1]
+            if "@" in spec:
+                length, offset = spec.split("@", 1)
+                pending_range = (int(offset), int(length))
+            else:
+                pending_range = (previous_end, int(spec))
+            previous_end = pending_range[0] + pending_range[1]
+        elif line.startswith("#"):
+            continue
+        else:
+            offset = pending_range[0] if pending_range else None
+            length = pending_range[1] if pending_range else None
+            pending_range = None
+            segments.append(
+                Segment(
+                    url=urljoin(base_url, line),
+                    offset=offset,
+                    length=length,
+                    key=current_key,
+                    iv=current_iv,
+                )
+            )
+    return segments
+
+
