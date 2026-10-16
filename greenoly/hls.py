@@ -79,3 +79,13 @@ def _attr(line: str, name: str) -> str | None:
     return value.strip() or None
 
 
+def _iv(value: str | None, sequence: int) -> bytes | None:
+    if value:
+        hexpart = value[2:] if value.lower().startswith("0x") else value
+        try:
+            return bytes.fromhex(hexpart)
+        except ValueError:
+            return None
+    return sequence.to_bytes(16, "big")
+
+
