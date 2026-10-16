@@ -151,3 +151,8 @@ def parse_media_playlist(
     return segments
 
 
+def playlist_base(media_text: str, fallback: str) -> str:
+    """Absolute URL of the media playlist itself, used to resolve segments."""
+    return fallback
+
+
