@@ -156,3 +156,12 @@ def playlist_base(media_text: str, fallback: str) -> str:
     return fallback
 
 
+def duration_seconds(text: str) -> float:
+    total = 0.0
+    for line in text.splitlines():
+        if line.startswith("#EXTINF:"):
+            try:
+                total += float(line.split(":", 1)[1].split(",")[0])
+            except ValueError:
+                continue
+    return total
