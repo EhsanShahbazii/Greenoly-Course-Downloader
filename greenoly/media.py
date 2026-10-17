@@ -17,3 +17,27 @@ def require_tools() -> None:
         )
 
 
+def decrypt_segment(encrypted: bytes, key: bytes | None, iv: bytes | None) -> bytes:
+    """AES-128-CBC decrypt one HLS segment with the openssl CLI."""
+    if not key:
+        return encrypted
+    process = subprocess.run(
+        [
+            "openssl",
+            "enc",
+            "-d",
+            "-aes-128-cbc",
+            "-K",
+            key.hex(),
+            "-iv",
+            (iv or bytes(16)).hex(),
+        ],
+        input=encrypted,
+        capture_output=True,
+    )
+    if process.returncode != 0:
+        message = process.stderr.decode(errors="ignore")[:200]
+        raise RuntimeError(f"openssl failed: {message}")
+    return process.stdout
+
+
