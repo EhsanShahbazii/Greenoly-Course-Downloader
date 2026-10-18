@@ -73,3 +73,9 @@ def remux_to_mp4(source: str, destination: str) -> None:
         raise RuntimeError(f"ffmpeg remux failed: {message}")
 
 
+def human_size(num_bytes: float) -> str:
+    for unit in ("B", "KB", "MB", "GB"):
+        if num_bytes < 1024 or unit == "GB":
+            return f"{num_bytes:.1f} {unit}"
+        num_bytes /= 1024
+    return f"{num_bytes:.1f} GB"
