@@ -48,3 +48,28 @@ def concat_files(paths: list[str], destination: str) -> None:
                 shutil.copyfileobj(handle, out)
 
 
+def remux_to_mp4(source: str, destination: str) -> None:
+    """Stream-copy the concatenated transport stream into a proper MP4."""
+    os.makedirs(os.path.dirname(destination) or ".", exist_ok=True)
+    process = subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-i",
+            source,
+            "-c",
+            "copy",
+            "-movflags",
+            "+faststart",
+            destination,
+        ],
+        capture_output=True,
+    )
+    if process.returncode != 0:
+        message = process.stderr.decode(errors="ignore").strip()[:300]
+        raise RuntimeError(f"ffmpeg remux failed: {message}")
+
+
