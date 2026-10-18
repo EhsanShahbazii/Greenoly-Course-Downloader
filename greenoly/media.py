@@ -41,3 +41,10 @@ def decrypt_segment(encrypted: bytes, key: bytes | None, iv: bytes | None) -> by
     return process.stdout
 
 
+def concat_files(paths: list[str], destination: str) -> None:
+    with open(destination, "wb") as out:
+        for path in paths:
+            with open(path, "rb") as handle:
+                shutil.copyfileobj(handle, out)
+
+
