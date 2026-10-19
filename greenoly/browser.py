@@ -78,3 +78,11 @@ _CAPTURE_HOOK = r"""
 """
 
 
+@dataclass
+class CapturedPlaylist:
+    master: str | None
+    media: str
+    variant_url: str | None = None
+    base_url: str = VOD_HOST
+
+
