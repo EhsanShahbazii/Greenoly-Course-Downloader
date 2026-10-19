@@ -90,3 +90,14 @@ def _hook_script(max_height: int | None) -> str:
     return _CAPTURE_HOOK.replace("__MAX_HEIGHT__", str(max_height or 0))
 
 
+def _read_capture(page) -> dict | None:
+    for frame in page.frames:
+        try:
+            value = frame.evaluate("window.__greenoly_cap || null")
+        except Exception:  # noqa: BLE001 - detached frames
+            continue
+        if value and value.get("media"):
+            return value
+    return None
+
+
