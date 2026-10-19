@@ -86,3 +86,7 @@ class CapturedPlaylist:
     base_url: str = VOD_HOST
 
 
+def _hook_script(max_height: int | None) -> str:
+    return _CAPTURE_HOOK.replace("__MAX_HEIGHT__", str(max_height or 0))
+
+
