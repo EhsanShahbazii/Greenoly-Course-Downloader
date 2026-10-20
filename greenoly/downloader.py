@@ -74,3 +74,46 @@ def _fetch_segment(
     return index, path
 
 
+def download_lesson(
+    http: requests.Session,
+    playlist: CapturedPlaylist,
+    out_file: str,
+    headers: dict,
+    reporter: Reporter,
+    workers: int = 6,
+    max_segments: int | None = None,
+    retries: int = 6,
+) -> None:
+    """Download, decrypt, concatenate and remux a single lesson."""
+    segments = parse_media_playlist(playlist.media, playlist.base_url, headers, http)
+    if max_segments:
+        segments = segments[:max_segments]
+    if not segments:
+        raise RuntimeError("No segments found in the playlist")
+
+    reporter.segments_planned(len(segments))
+    tmpdir = tempfile.mkdtemp(prefix="greenoly_")
+    try:
+        local = threading.local()
+        paths: dict[int, str] = {}
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [
+                pool.submit(
+                    _fetch_segment, segment, index, headers, local, retries, tmpdir
+                )
+                for index, segment in enumerate(segments)
+            ]
+            for future in as_completed(futures):
+                index, path = future.result()
+                paths[index] = path
+                reporter.segment_done()
+
+        concat_ts = os.path.join(tmpdir, "all.ts")
+        concat_files([paths[i] for i in range(len(segments))], concat_ts)
+        os.makedirs(os.path.dirname(out_file) or ".", exist_ok=True)
+        remux_to_mp4(concat_ts, out_file)
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
