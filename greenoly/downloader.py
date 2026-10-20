@@ -117,3 +117,11 @@ def download_lesson(
         shutil.rmtree(tmpdir, ignore_errors=True)
 
 
+def _build_headers(url: str) -> dict:
+    return {
+        "Referer": course_base_from_url(url) + "/",
+        "Origin": "https://greenoly.tv",
+        "Accept": "*/*",
+    }
+
+
