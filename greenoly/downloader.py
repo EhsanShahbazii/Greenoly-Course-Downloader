@@ -149,3 +149,64 @@ def _collect_lessons(http, settings: Settings) -> tuple[list[Lesson], str]:
     return lessons, lesson_url
 
 
+def run(settings: Settings, reporter: Reporter) -> int:
+    """Entry point used by the CLI. Returns a process exit code."""
+    require_tools()
+
+    cookies, source = resolve_cookies(settings.cookies_file, settings.browser)
+    reporter.cookies_loaded(source, len(cookies))
+    http = build_session(cookies)
+
+    lessons, _lesson_url = _collect_lessons(http, settings)
+    reporter.course_loaded(len(lessons))
+
+    headers = _build_headers(settings.url)
+    failures: list[tuple[str, str]] = []
+
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(
+            headless=True, args=["--autoplay-policy=no-user-gesture-required"]
+        )
+        try:
+            for position, lesson in enumerate(lessons, 1):
+                folder = (
+                    os.path.join(settings.output, section_folder(lesson.section))
+                    if lesson.section
+                    else str(settings.output)
+                )
+                out_file = os.path.join(folder, lesson_filename(lesson))
+                if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
+                    reporter.lesson_skipped(position, len(lessons), lesson.title)
+                    continue
+
+                reporter.lesson_started(position, len(lessons), lesson)
+                try:
+                    playlist = capture_playlist(
+                        browser,
+                        cookies,
+                        lesson.id,
+                        max_height=settings.max_height,
+                    )
+                    download_lesson(
+                        http,
+                        playlist,
+                        out_file,
+                        headers,
+                        reporter,
+                        workers=settings.workers,
+                        max_segments=settings.max_segments,
+                        retries=settings.retries,
+                    )
+                    reporter.lesson_saved(out_file, os.path.getsize(out_file))
+                except KeyboardInterrupt:
+                    raise
+                except Exception as exc:  # noqa: BLE001 - keep going, report later
+                    reporter.lesson_failed(lesson.title, str(exc))
+                    failures.append((lesson.title, str(exc)))
+        finally:
+            browser.close()
+
+    reporter.summary(failures)
+    return 1 if failures else 0
