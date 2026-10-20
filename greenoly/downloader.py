@@ -125,3 +125,27 @@ def _build_headers(url: str) -> dict:
     }
 
 
+def _collect_lessons(http, settings: Settings) -> tuple[list[Lesson], str]:
+    lesson_url = resolve_lesson_url(http, settings.url)
+    sections = fetch_course_sections(http, lesson_url)
+    lessons = flatten_lessons(sections)
+    if not lessons:
+        raise SystemExit("No lessons found for this course")
+
+    if settings.single:
+        lesson_id = lesson_id_from_url(lesson_url)
+        match = find_lesson(sections, lesson_id)
+        lessons = [
+            match
+            or Lesson(
+                id=lesson_id,
+                title=f"lesson {lesson_id}",
+                section="",
+                index=1,
+            )
+        ]
+    elif settings.limit:
+        lessons = lessons[: settings.limit]
+    return lessons, lesson_url
+
+
