@@ -101,3 +101,58 @@ def _read_capture(page) -> dict | None:
     return None
 
 
+def capture_playlist(
+    browser,
+    cookies: list[dict],
+    lesson_id: str,
+    max_height: int | None = None,
+    timeout_ms: int = PLAYLIST_TIMEOUT_MS,
+    settle_ms: int = PLAYER_SETTLE_MS,
+) -> CapturedPlaylist:
+    """Open the lesson player and return its decrypted media playlist."""
+    context = browser.new_context(user_agent=USER_AGENT)
+    context.add_cookies(cookies)
+    context.add_init_script(_hook_script(max_height))
+    page = context.new_page()
+    manifests: list[str] = []
+    page.on(
+        "request",
+        lambda request: manifests.append(request.url)
+        if ".m3u8" in request.url
+        else None,
+    )
+    try:
+        page.goto(
+            PLAYER_ENDPOINT.format(lesson_id=lesson_id),
+            wait_until="domcontentloaded",
+            timeout=timeout_ms,
+        )
+        page.wait_for_timeout(settle_ms)
+        try:
+            page.mouse.click(400, 300)
+        except Exception:  # noqa: BLE001 - best-effort autoplay nudge
+            pass
+
+        waited = 0
+        capture = None
+        while waited < timeout_ms:
+            capture = _read_capture(page)
+            if capture:
+                break
+            page.wait_for_timeout(500)
+            waited += 500
+        if not capture:
+            raise RuntimeError(
+                "Timed out waiting for the player playlist "
+                "(expired cookies or a locked lesson?)"
+            )
+
+        base_url = manifests[-1] if manifests else VOD_HOST
+        return CapturedPlaylist(
+            master=capture.get("master"),
+            media=capture["media"],
+            variant_url=capture.get("variant"),
+            base_url=base_url,
+        )
+    finally:
+        context.close()
