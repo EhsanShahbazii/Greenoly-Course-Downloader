@@ -29,3 +29,12 @@ from .naming import lesson_filename, section_folder
 from .ui import Reporter
 
 
+def _thread_session(local: threading.local) -> requests.Session:
+    session = getattr(local, "session", None)
+    if session is None:
+        session = requests.Session()
+        session.headers.update({"User-Agent": USER_AGENT})
+        local.session = session
+    return session
+
+
