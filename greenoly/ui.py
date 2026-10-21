@@ -52,3 +52,8 @@ _GRADIENT = [
 ]
 
 
+def _lerp(start: tuple[int, int, int], end: tuple[int, int, int], t: float) -> str:
+    rgb = tuple(round(a + (b - a) * t) for a, b in zip(start, end))
+    return "#{:02x}{:02x}{:02x}".format(*rgb)
+
+
