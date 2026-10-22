@@ -92,3 +92,17 @@ def banner(console: "Console", animate: bool = True) -> None:
     console.print()
 
 
+def boot_checks(console: "Console", checks: list[tuple[str, callable]]) -> None:
+    """Run a series of checks with a spinner, one line each."""
+    for label, check in checks:
+        with console.status(f"[#7ef9c7]{label}[/]", spinner="dots12"):
+            try:
+                detail = check()
+            except Exception as exc:  # noqa: BLE001 - reported, not fatal here
+                console.print(f"  [red]✖[/] {label} [dim]({exc})[/]")
+                continue
+        suffix = f" [dim]{detail}[/]" if detail else ""
+        console.print(f"  [green]✔[/] {label}{suffix}")
+    console.print()
+
+
