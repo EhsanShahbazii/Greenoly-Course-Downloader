@@ -57,3 +57,13 @@ def _lerp(start: tuple[int, int, int], end: tuple[int, int, int], t: float) -> s
     return "#{:02x}{:02x}{:02x}".format(*rgb)
 
 
+def _gradient_color(index: int, total: int) -> str:
+    if total <= 1:
+        return _lerp(_GRADIENT[0], _GRADIENT[-1], 0.0)
+    position = index / (total - 1)
+    span = len(_GRADIENT) - 1
+    segment = min(int(position * span), span - 1)
+    local = position * span - segment
+    return _lerp(_GRADIENT[segment], _GRADIENT[segment + 1], local)
+
+
