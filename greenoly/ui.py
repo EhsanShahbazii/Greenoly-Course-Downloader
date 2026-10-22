@@ -67,3 +67,28 @@ def _gradient_color(index: int, total: int) -> str:
     return _lerp(_GRADIENT[segment], _GRADIENT[segment + 1], local)
 
 
+def banner(console: "Console", animate: bool = True) -> None:
+    """Print the gradient logo, revealing it line by line."""
+    total = len(LOGO)
+    for index, line in enumerate(LOGO):
+        text = Text()
+        for column, char in enumerate(line):
+            shade = _gradient_color(index + column / max(len(line), 1), total + 1)
+            text.append(char, style=shade)
+        console.print(text, highlight=False, soft_wrap=True)
+        if animate:
+            time.sleep(0.045)
+
+    console.print()
+    if animate:
+        typed = Text("  ")
+        with Live(typed, console=console, refresh_per_second=60, transient=False) as live:
+            for char in TAGLINE:
+                typed.append(char, style="bold #7ef9c7")
+                live.update(typed)
+                time.sleep(0.012)
+    else:
+        console.print(Text("  " + TAGLINE, style="bold #7ef9c7"))
+    console.print()
+
+
