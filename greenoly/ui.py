@@ -134,3 +134,33 @@ class Reporter:
     def summary(self, failures: list[tuple[str, str]]) -> None: ...
 
 
+class PlainReporter(Reporter):
+    """Minimal line-based output for ``--quiet`` or machines without rich."""
+
+    def cookies_loaded(self, source: str, count: int) -> None:
+        print(f"cookies: {count} from {source}")
+
+    def course_loaded(self, total: int) -> None:
+        print(f"lessons: {total}")
+
+    def lesson_started(self, position: int, total: int, lesson: Lesson) -> None:
+        print(f"[{position}/{total}] {lesson.section} / {lesson.title}", flush=True)
+
+    def lesson_skipped(self, position: int, total: int, title: str) -> None:
+        print(f"[{position}/{total}] skip (exists): {title}")
+
+    def lesson_saved(self, path: str, size: int) -> None:
+        print(f"    saved: {path} ({human_size(size)})")
+
+    def lesson_failed(self, title: str, error: str) -> None:
+        print(f"    FAILED: {title}: {error}")
+
+    def summary(self, failures: list[tuple[str, str]]) -> None:
+        if failures:
+            print(f"\n{len(failures)} lesson(s) failed:")
+            for title, error in failures:
+                print(f"  - {title}: {error}")
+        else:
+            print("\nDone.")
+
+
