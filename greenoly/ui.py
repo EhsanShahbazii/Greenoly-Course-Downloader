@@ -106,3 +106,31 @@ def boot_checks(console: "Console", checks: list[tuple[str, callable]]) -> None:
     console.print()
 
 
+class Reporter:
+    """No-op reporter; the base contract for the progress UI."""
+
+    def __enter__(self) -> "Reporter":
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        return None
+
+    def cookies_loaded(self, source: str, count: int) -> None: ...
+
+    def course_loaded(self, total: int) -> None: ...
+
+    def lesson_started(self, position: int, total: int, lesson: Lesson) -> None: ...
+
+    def lesson_skipped(self, position: int, total: int, title: str) -> None: ...
+
+    def segments_planned(self, count: int) -> None: ...
+
+    def segment_done(self) -> None: ...
+
+    def lesson_saved(self, path: str, size: int) -> None: ...
+
+    def lesson_failed(self, title: str, error: str) -> None: ...
+
+    def summary(self, failures: list[tuple[str, str]]) -> None: ...
+
+
