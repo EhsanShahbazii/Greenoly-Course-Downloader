@@ -164,3 +164,126 @@ class PlainReporter(Reporter):
             print("\nDone.")
 
 
+class RichReporter(Reporter):
+    """Animated progress bars, per-lesson status and a closing summary."""
+
+    def __init__(self, console: "Console", total_lessons: int = 0) -> None:
+        self.console = console
+        self.total_lessons = total_lessons
+        self.saved = 0
+        self.skipped = 0
+        self.started_at = time.time()
+        self.progress = Progress(
+            SpinnerColumn(style="#7ef9c7"),
+            TextColumn("[bold #7ef9c7]{task.description}"),
+            BarColumn(
+                bar_width=None,
+                complete_style="#00ff87",
+                finished_style="#60efff",
+                pulse_style="#00ff87",
+            ),
+            MofNCompleteColumn(),
+            TaskProgressColumn(),
+            TextColumn("[dim]•[/]"),
+            TimeRemainingColumn(),
+            console=console,
+            expand=True,
+        )
+        self.course_task = None
+        self.segment_task = None
+        self._running = False
+
+    def __enter__(self) -> "RichReporter":
+        self.progress.start()
+        self._running = True
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        self._stop()
+
+    def _stop(self) -> None:
+        if self._running:
+            self.progress.stop()
+            self._running = False
+
+    def cookies_loaded(self, source: str, count: int) -> None:
+        self.console.print(
+            f"[green]✔[/] Cookies: [bold]{count}[/] from [dim]{source}[/]"
+        )
+
+    def course_loaded(self, total: int) -> None:
+        self.total_lessons = total
+        self.course_task = self.progress.add_task(
+            "course", total=total, completed=0
+        )
+        self.console.print(f"[green]✔[/] Lessons found: [bold]{total}[/]\n")
+
+    def lesson_started(self, position: int, total: int, lesson: Lesson) -> None:
+        label = lesson.title if len(lesson.title) < 52 else lesson.title[:49] + "…"
+        self.progress.update(
+            self.course_task,
+            description=f"[{position}/{total}] {label}",
+            total=total,
+        )
+        self.segment_task = self.progress.add_task(
+            "  segments", total=None, completed=0
+        )
+
+    def lesson_skipped(self, position: int, total: int, title: str) -> None:
+        self.skipped += 1
+        self.progress.update(self.course_task, advance=1)
+        self.console.print(f"[dim]⏭  skipped (already exists): {title}[/]")
+
+    def segments_planned(self, count: int) -> None:
+        if self.segment_task is not None:
+            self.progress.update(self.segment_task, total=count, completed=0)
+
+    def segment_done(self) -> None:
+        if self.segment_task is not None:
+            self.progress.update(self.segment_task, advance=1)
+
+    def lesson_saved(self, path: str, size: int) -> None:
+        self.saved += 1
+        if self.segment_task is not None:
+            self.progress.remove_task(self.segment_task)
+            self.segment_task = None
+        self.progress.update(self.course_task, advance=1)
+        self.console.print(
+            f"[green]✔[/] saved [dim]({human_size(size)})[/] → [bold]{Path(path).name}[/]"
+        )
+
+    def lesson_failed(self, title: str, error: str) -> None:
+        if self.segment_task is not None:
+            self.progress.remove_task(self.segment_task)
+            self.segment_task = None
+        self.progress.update(self.course_task, advance=1)
+        self.console.print(f"[red]✖[/] {title} [dim]{error}[/]")
+
+    def summary(self, failures: list[tuple[str, str]]) -> None:
+        self._stop()
+        elapsed = time.time() - self.started_at
+        table = Table(box=SIMPLE, show_header=False, padding=(0, 2))
+        table.add_column(style="bold #7ef9c7")
+        table.add_column()
+        table.add_row("Downloaded", f"[green]{self.saved}[/]")
+        table.add_row("Skipped", f"[yellow]{self.skipped}[/]")
+        table.add_row("Failed", f"[red]{len(failures)}[/]")
+        table.add_row("Elapsed", f"{elapsed / 60:.1f} min")
+        self.console.print()
+        self.console.print(
+            Panel(
+                table,
+                title="[bold #7ef9c7]Summary[/]",
+                border_style="#00ff87",
+                box=ROUNDED,
+            )
+        )
+        if failures:
+            self.console.print("[red]Failed lessons:[/]")
+            for title, error in failures:
+                self.console.print(f"  [red]•[/] {title} [dim]{error}[/]")
+            self.console.print(
+                "\n[dim]Run again — only the failed lessons will be retried.[/]"
+            )
+
+
