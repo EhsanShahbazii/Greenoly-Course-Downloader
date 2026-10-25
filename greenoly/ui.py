@@ -293,3 +293,7 @@ def make_console(quiet: bool = False) -> "Console":
     return Console(quiet=quiet, highlight=False, soft_wrap=True)
 
 
+def make_reporter(console: "Console", quiet: bool = False) -> Reporter:
+    if quiet or not RICH_AVAILABLE:
+        return PlainReporter()
+    return RichReporter(console)
