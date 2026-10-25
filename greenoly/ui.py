@@ -287,3 +287,9 @@ class RichReporter(Reporter):
             )
 
 
+def make_console(quiet: bool = False) -> "Console":
+    if not RICH_AVAILABLE:
+        raise SystemExit("rich is not installed. pip install -r requirements.txt")
+    return Console(quiet=quiet, highlight=False, soft_wrap=True)
+
+
