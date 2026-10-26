@@ -78,3 +78,12 @@ def _check_ffmpeg() -> str:
     return output[0].split(" ")[2] if output else "ok"
 
 
+def _check_openssl() -> str:
+    if shutil.which("openssl") is None:
+        raise RuntimeError("not installed (brew install openssl)")
+    output = subprocess.run(
+        ["openssl", "version"], capture_output=True, text=True
+    ).stdout.strip()
+    return output.replace("OpenSSL ", "")
+
+
