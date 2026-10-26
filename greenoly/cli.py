@@ -69,3 +69,12 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _check_ffmpeg() -> str:
+    if shutil.which("ffmpeg") is None:
+        raise RuntimeError("not installed (brew install ffmpeg)")
+    output = subprocess.run(
+        ["ffmpeg", "-version"], capture_output=True, text=True
+    ).stdout.splitlines()
+    return output[0].split(" ")[2] if output else "ok"
+
+
