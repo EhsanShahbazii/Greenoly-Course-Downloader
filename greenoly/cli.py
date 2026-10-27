@@ -123,3 +123,51 @@ def _list_lessons(args, console) -> int:
     return 0
 
 
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    quiet = args.quiet or not sys.stdout.isatty() or not RICH_AVAILABLE
+    console = make_console(quiet=quiet) if RICH_AVAILABLE else None
+
+    if console is not None and not quiet:
+        banner(console, animate=not args.no_animation)
+        boot_checks(
+            console,
+            [
+                ("ffmpeg", _check_ffmpeg),
+                ("openssl", _check_openssl),
+                ("playwright chromium", _check_chromium),
+            ],
+        )
+
+    if args.list:
+        return _list_lessons(args, console)
+
+    from .config import Settings
+
+    settings = Settings(
+        url=args.url,
+        output=args.out,
+        cookies_file=args.cookies,
+        browser=args.browser,
+        single=args.single,
+        limit=args.limit,
+        workers=args.workers,
+        max_segments=args.max_segments,
+        quality=args.quality,
+        retries=args.retries,
+        quiet=quiet,
+    )
+
+    try:
+        with make_reporter(console, quiet) as reporter:
+            return run(settings, reporter)
+    except KeyboardInterrupt:
+        _say(console, "\nInterrupted. Run again to resume where it stopped.")
+        return 130
+    except SystemExit:
+        raise
+    except Exception as exc:  # noqa: BLE001 - top level guard
+        _say(console, f"Error: {exc}")
+        return 1
+
+
