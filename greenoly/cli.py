@@ -171,3 +171,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
 
+def _say(console, message: str) -> None:
+    if console is None:
+        print(message)
+    else:
+        console.print(message)
