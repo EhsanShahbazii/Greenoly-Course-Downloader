@@ -97,3 +97,29 @@ def _check_chromium() -> str:
     return "ready"
 
 
+def _list_lessons(args, console) -> int:
+    from .api import fetch_course_sections, flatten_lessons, resolve_lesson_url
+    from .cookies import build_session, resolve_cookies
+
+    cookies, _source = resolve_cookies(args.cookies, args.browser)
+    http = build_session(cookies)
+    lesson_url = resolve_lesson_url(http, args.url)
+    lessons = flatten_lessons(fetch_course_sections(http, lesson_url))
+
+    if not RICH_AVAILABLE:
+        for lesson in lessons:
+            print(f"{lesson.index:03d}  {lesson.section} / {lesson.title}")
+        return 0
+
+    from rich.table import Table
+
+    table = Table(title=f"{len(lessons)} lessons", border_style="#00ff87")
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Section", style="#7ef9c7")
+    table.add_column("Lesson")
+    for lesson in lessons:
+        table.add_row(str(lesson.index), lesson.section or "-", lesson.title)
+    console.print(table)
+    return 0
+
+
