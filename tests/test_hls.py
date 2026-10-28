@@ -37,3 +37,8 @@ class FakeResponse:
         return None
 
 
+class FakeSession:
+    def get(self, url, headers=None, timeout=None):
+        return FakeResponse()
+
+
