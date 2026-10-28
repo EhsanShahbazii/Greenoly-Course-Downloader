@@ -30,3 +30,10 @@ seg.ts
 """
 
 
+class FakeResponse:
+    content = b"0" * 16
+
+    def raise_for_status(self) -> None:
+        return None
+
+
