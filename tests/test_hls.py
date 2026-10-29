@@ -42,3 +42,25 @@ class FakeSession:
         return FakeResponse()
 
 
+class MasterPlaylistTests(unittest.TestCase):
+    def test_parses_all_variants(self) -> None:
+        variants = parse_master(MASTER, "https://cdn.example/")
+        self.assertEqual(len(variants), 3)
+        self.assertEqual(variants[0].url, "https://cdn.example/360/index.m3u8")
+        self.assertEqual(variants[1].height, 720)
+
+    def test_picks_highest_by_default(self) -> None:
+        best = pick_variant(MASTER, "https://cdn.example/")
+        self.assertIsNotNone(best)
+        self.assertEqual(best.height, 720)
+
+    def test_respects_height_cap(self) -> None:
+        capped = pick_variant(MASTER, "https://cdn.example/", max_height=480)
+        self.assertIsNotNone(capped)
+        self.assertEqual(capped.height, 480)
+
+    def test_falls_back_when_cap_matches_nothing(self) -> None:
+        capped = pick_variant(MASTER, "https://cdn.example/", max_height=120)
+        self.assertEqual(capped.height, 720)
+
+
