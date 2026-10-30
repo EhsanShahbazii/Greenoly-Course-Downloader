@@ -64,3 +64,16 @@ class MasterPlaylistTests(unittest.TestCase):
         self.assertEqual(capped.height, 720)
 
 
+class MediaPlaylistTests(unittest.TestCase):
+    def test_byteranges_and_key(self) -> None:
+        segments = parse_media_playlist(
+            MEDIA, "https://cdn.example/720/", {}, FakeSession()
+        )
+        self.assertEqual(len(segments), 2)
+        self.assertEqual((segments[0].offset, segments[0].length), (0, 1000))
+        self.assertEqual((segments[1].offset, segments[1].length), (1000, 500))
+        self.assertEqual(segments[0].key, b"0" * 16)
+        self.assertEqual(segments[0].iv, bytes(15) + b"\x01")
+        self.assertEqual(segments[0].url, "https://cdn.example/720/seg.ts")
+
+
