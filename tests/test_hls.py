@@ -77,3 +77,14 @@ class MediaPlaylistTests(unittest.TestCase):
         self.assertEqual(segments[0].url, "https://cdn.example/720/seg.ts")
 
 
+class NamingTests(unittest.TestCase):
+    def test_strips_illegal_characters(self) -> None:
+        self.assertEqual(safe_name('درس ۱: مقدمه/بخش'), "درس ۱ مقدمه بخش")
+
+    def test_numbers_files(self) -> None:
+        lesson = Lesson(id="x", title="معرفی دوره", section="مقدمه", index=3)
+        self.assertEqual(lesson_filename(lesson), "003 - معرفی دوره.mp4")
+
+
+if __name__ == "__main__":
+    unittest.main()
