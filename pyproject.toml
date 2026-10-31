@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "greenoly-downloader"
+version = "1.0.0"
+description = "دانلودر دوره‌های greenoly.tv با بالاترین کیفیت"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31",
+    "playwright>=1.40",
+    "rich>=13.7",
+    "browser-cookie3>=0.19",
+]
+
+[project.scripts]
+greenoly = "greenoly.cli:main"
+
+[tool.setuptools]
+packages = ["greenoly"]
