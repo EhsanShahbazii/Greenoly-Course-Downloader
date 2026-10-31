@@ -1,0 +1,4 @@
+requests>=2.31
+playwright>=1.40
+rich>=13.7
+browser-cookie3>=0.19
