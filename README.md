@@ -32,3 +32,26 @@
 - 🎬 خروجی با `ffmpeg -c copy` ریمکس می‌شود؛ یعنی **بدون افت کیفیت** و سریع
 - 💚 ترمینال زیبا: بنر گرادیانی، انیمیشن، نوار پیشرفت و گزارش پایانی
 
+## 🚀 نصب
+
+```bash
+git clone https://github.com/EhsanShahbazii/Greenoly-Course-Downloader.git
+cd Greenoly-Course-Downloader
+
+python3 -m venv .venv
+source .venv/bin/activate          # ویندوز: .venv\Scripts\activate
+
+pip install -r requirements.txt
+python -m playwright install chromium
+```
+
+ابزارهای سیستمی:
+
+```bash
+# macOS
+brew install ffmpeg openssl
+
+# Ubuntu / Debian
+sudo apt install ffmpeg openssl
+```
+
