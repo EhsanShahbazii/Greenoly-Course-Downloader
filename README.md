@@ -55,3 +55,20 @@ brew install ffmpeg openssl
 sudo apt install ffmpeg openssl
 ```
 
+## 🎬 اجرا
+
+ساده‌ترین حالت — کوکی مستقیم از مرورگر خوانده می‌شود:
+
+```bash
+python greenoly.py "https://greenoly.tv/courses/ترکیبیات/lessons/cmvzgc5m4026dhmo6v9xbpv0v"
+```
+
+یا با فایل کوکی:
+
+```bash
+python greenoly.py "<lesson-url>" --cookies greenoly.tv_cookies.txt
+```
+
+> 💡 اگر کوکی مرورگر خوانده نشد، یک‌بار در مرورگر لاگین کن و دوباره اجرا کن.
+> روی macOS ممکن است سیستم اجازهٔ دسترسی به Keychain را بپرسد؛ «Allow» بزن.
+
