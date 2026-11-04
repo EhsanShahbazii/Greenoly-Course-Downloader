@@ -72,3 +72,17 @@ python greenoly.py "<lesson-url>" --cookies greenoly.tv_cookies.txt
 > 💡 اگر کوکی مرورگر خوانده نشد، یک‌بار در مرورگر لاگین کن و دوباره اجرا کن.
 > روی macOS ممکن است سیستم اجازهٔ دسترسی به Keychain را بپرسد؛ «Allow» بزن.
 
+## ⚙️ گزینه‌ها
+
+| گزینه | توضیح |
+| --- | --- |
+| `--cookies PATH` | فایل کوکی Netscape (اختیاری) |
+| `--browser NAME` | خواندن کوکی از `chrome`، `firefox`، `safari`، `edge`، `brave`… |
+| `--out DIR` | پوشهٔ خروجی (پیش‌فرض `downloads`) |
+| `--single` | فقط همان یک درس |
+| `--limit N` | فقط N درس اول |
+| `--quality 720p` | سقف کیفیت (پیش‌فرض `best`) |
+| `--workers N` | تعداد دانلود هم‌زمان سگمنت‌ها (پیش‌فرض ۶) |
+| `--list` | فقط فهرست درس‌ها را نشان بده |
+| `--quiet` | خروجی ساده و بدون انیمیشن |
+
