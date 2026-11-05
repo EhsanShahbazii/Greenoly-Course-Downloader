@@ -123,3 +123,13 @@ greenoly/
 └── ui.py           # بنر، انیمیشن و نوار پیشرفت
 ```
 
+## 🛠 رفع اشکال
+
+| مشکل | راه‌حل |
+| --- | --- |
+| `Timed out waiting for the player playlist` | کوکی منقضی شده؛ دوباره لاگین کن |
+| `No greenoly.tv cookies found` | با `--browser chrome` یا `--cookies` امتحان کن |
+| `ffmpeg: command not found` | `brew install ffmpeg` |
+| دانلود کند است | `--workers 12` |
+| قطع‌وصل می‌شود | دوباره اجرا کن؛ از همان درس ادامه می‌دهد |
+
