@@ -34,6 +34,12 @@
 
 ## 🚀 نصب
 
+### ارسال دوره‌های درایو به تلگرام
+
+برای اجرای Telethon در ترمینال Google Colab و ارسال مرتب دوره‌ها با فرمان
+`/gr 1-12`، [راهنمای درایو به تلگرام](scripts/TELEGRAM_COLAB.md) را ببین.
+این ابزار وابستگی جداگانه دارد و با `api_id` و `api_hash` حساب خودت کار می‌کند.
+
 ### 📦 نسخهٔ آماده (بدون نصب) — پیشنهادی
 
 از صفحهٔ [Releases](https://github.com/EhsanShahbazii/Greenoly-Course-Downloader/releases)

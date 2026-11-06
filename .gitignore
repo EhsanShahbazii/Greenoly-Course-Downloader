@@ -2,6 +2,9 @@
 greenoly.tv_cookies.txt
 *.har
 cookies.txt
+*.session
+*.session-journal
+.telegram-upload/
 
 # downloads
 downloads/
