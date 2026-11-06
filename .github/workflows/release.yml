@@ -16,9 +16,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - os: macos-latest
             tag: macos-arm64
-          - os: macos-13
+          - os: macos-15-intel
             tag: macos-x64
           - os: windows-latest
             tag: windows-x64
