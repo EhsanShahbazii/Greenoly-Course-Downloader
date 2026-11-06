@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
+          - os: macos-15
             tag: macos-arm64
           - os: macos-15-intel
             tag: macos-x64
