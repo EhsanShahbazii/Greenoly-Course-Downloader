@@ -40,7 +40,7 @@ def platform_tag() -> str:
 def main() -> int:
     run([sys.executable, "-m", "pip", "install", "-q", "-r", "requirements.txt"])
     run([sys.executable, "-m", "pip", "install", "-q", "pyinstaller>=6.6"])
-    run([sys.executable, "-c", "from cryptography.hazmat.primitives.ciphers import Cipher; import _cffi_backend"])
+    run([sys.executable, "-c", "from Cryptodome.Cipher import AES; AES.new(bytes(16), AES.MODE_CBC, iv=bytes(16))"])
 
     run(
         [
@@ -65,14 +65,8 @@ def main() -> int:
             "imageio_ffmpeg",
             "--collect-all",
             "browser_cookie3",
-            "--hidden-import",
+            "--collect-all",
             "Cryptodome",
-            "--collect-all",
-            "cryptography",
-            "--collect-all",
-            "cffi",
-            "--hidden-import",
-            "_cffi_backend",
             "greenoly.py",
         ]
     )

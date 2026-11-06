@@ -81,10 +81,10 @@ def _check_ffmpeg() -> str:
 
 
 def _check_openssl() -> str:
-    from .media import HAS_CRYPTOGRAPHY, tool_path
+    from .media import HAS_AES, tool_path
 
-    if HAS_CRYPTOGRAPHY:
-        return "cryptography ready (no OpenSSL installation needed)"
+    if HAS_AES:
+        return "AES ready (no OpenSSL installation needed)"
     openssl = tool_path("openssl")
     if openssl is None:
         raise RuntimeError("not installed (brew install openssl)")

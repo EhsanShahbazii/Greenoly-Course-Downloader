@@ -78,10 +78,10 @@ def is_frozen() -> bool:
 def self_test() -> None:
     """Exercise the shipped browser, crypto and ffmpeg without network access."""
     from playwright.sync_api import sync_playwright
-    from .media import CRYPTOGRAPHY_IMPORT_ERROR, HAS_CRYPTOGRAPHY, decrypt_segment, tool_path
+    from .media import AES_IMPORT_ERROR, HAS_AES, decrypt_segment, tool_path
 
-    if not HAS_CRYPTOGRAPHY:
-        raise RuntimeError(f"cryptography could not load: {CRYPTOGRAPHY_IMPORT_ERROR}")
+    if not HAS_AES:
+        raise RuntimeError(f"AES backend could not load: {AES_IMPORT_ERROR}")
     decrypted = decrypt_segment(
         bytes.fromhex("3ad77bb40d7a3660a89ecaf32466ef97"),
         bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c"),
@@ -108,4 +108,4 @@ def self_test() -> None:
     if is_frozen() and not Path(ffmpeg).resolve().is_relative_to(Path(sys.executable).resolve().parent):
         raise RuntimeError("ffmpeg is not using the portable bundle")
     subprocess.run([ffmpeg, "-version"], check=True, stdout=subprocess.DEVNULL)
-    print("PASS: bundled Chromium, cryptography and ffmpeg (no network needed)")
+    print("PASS: bundled Chromium, AES and ffmpeg (no network needed)")

@@ -11,6 +11,22 @@ import requests
 from greenoly import cli, runtime
 from greenoly.cookies import load_netscape_cookies, resolve_cookies
 from greenoly.downloader import _build_headers
+from greenoly.media import decrypt_segment
+
+
+class DecryptionTests(unittest.TestCase):
+    def test_aes_cbc_known_vector(self):
+        self.assertEqual(
+            decrypt_segment(
+                bytes.fromhex("7649abac8119b246cee98e9b12e9197d"),
+                bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c"),
+                bytes.fromhex("000102030405060708090a0b0c0d0e0f"),
+            ),
+            bytes.fromhex("6bc1bee22e409f96e93d7e117393172a"),
+        )
+
+    def test_unencrypted_segment_passes_through(self):
+        self.assertEqual(decrypt_segment(b"video data", None, None), b"video data")
 
 
 class HeaderTests(unittest.TestCase):

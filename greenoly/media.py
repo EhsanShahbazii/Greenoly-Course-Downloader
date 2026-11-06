@@ -1,7 +1,7 @@
 """Segment decryption and MP4 remuxing.
 
-Decryption prefers the ``cryptography`` package (fast, pure wheels, no external
-binary) and falls back to the ``openssl`` CLI. ffmpeg is always required for the
+Decryption uses PyCryptodome (also used for browser cookies) and falls back to
+the ``openssl`` CLI. ffmpeg is always required for the
 final remux and is looked up next to the executable so a bundled build works.
 """
 
@@ -13,13 +13,13 @@ import subprocess
 import sys
 
 try:
-    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    from Cryptodome.Cipher import AES
 
-    HAS_CRYPTOGRAPHY = True
-    CRYPTOGRAPHY_IMPORT_ERROR = None
+    HAS_AES = True
+    AES_IMPORT_ERROR = None
 except ImportError as exc:  # pragma: no cover - fallback path
-    HAS_CRYPTOGRAPHY = False
-    CRYPTOGRAPHY_IMPORT_ERROR = str(exc)
+    HAS_AES = False
+    AES_IMPORT_ERROR = str(exc)
 
 
 def tool_path(name: str) -> str | None:
@@ -52,7 +52,7 @@ def tool_path(name: str) -> str | None:
 
 def require_tools() -> None:
     required = ["ffmpeg"]
-    if not HAS_CRYPTOGRAPHY:
+    if not HAS_AES:
         required.append("openssl")
     missing = [tool for tool in required if tool_path(tool) is None]
     if missing:
@@ -67,14 +67,11 @@ def decrypt_segment(encrypted: bytes, key: bytes | None, iv: bytes | None) -> by
     """AES-128-CBC decrypt one HLS segment."""
     if not key:
         return encrypted
-    if HAS_CRYPTOGRAPHY:
-        decryptor = Cipher(
-            algorithms.AES(key), modes.CBC(iv or bytes(16))
-        ).decryptor()
-        return decryptor.update(encrypted) + decryptor.finalize()
+    if HAS_AES:
+        return AES.new(key, AES.MODE_CBC, iv=iv or bytes(16)).decrypt(encrypted)
     openssl = tool_path("openssl")
     if openssl is None:
-        raise RuntimeError("Neither cryptography nor openssl is available")
+        raise RuntimeError("Neither PyCryptodome nor openssl is available")
     process = subprocess.run(
         [
             openssl,
