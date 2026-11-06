@@ -88,12 +88,9 @@ def _check_openssl() -> str:
 
 
 def _check_chromium() -> str:
-    from playwright.sync_api import sync_playwright
+    from .runtime import ensure_chromium
 
-    with sync_playwright() as playwright:
-        path = playwright.chromium.executable_path
-    if not path or not os.path.exists(path):
-        raise RuntimeError("python -m playwright install chromium")
+    ensure_chromium()
     return "ready"
 
 

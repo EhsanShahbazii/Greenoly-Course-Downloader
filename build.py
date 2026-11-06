@@ -41,10 +41,6 @@ def main() -> int:
     run([sys.executable, "-m", "pip", "install", "-q", "-r", "requirements.txt"])
     run([sys.executable, "-m", "pip", "install", "-q", "pyinstaller>=6.6"])
 
-    # Install Chromium *inside* the package so PyInstaller can bundle it.
-    env = dict(os.environ, PLAYWRIGHT_BROWSERS_PATH="0")
-    run([sys.executable, "-m", "playwright", "install", "chromium"], env=env)
-
     run(
         [
             sys.executable,
@@ -56,8 +52,12 @@ def main() -> int:
             "--console",
             "--name",
             APP_NAME,
-            "--collect-all",
+            "--collect-submodules",
             "playwright",
+            "--copy-metadata",
+            "playwright",
+            "--add-data",
+            f"{_playwright_dir()}{os.pathsep}playwright",
             "--collect-all",
             "rich",
             "--collect-all",
@@ -87,6 +87,12 @@ def main() -> int:
     size_mb = archive.stat().st_size / (1024 * 1024)
     print(f"\nBuilt {archive} ({size_mb:.0f} MB)")
     return 0
+
+
+def _playwright_dir() -> str:
+    import playwright
+
+    return str(Path(playwright.__file__).parent)
 
 
 if __name__ == "__main__":

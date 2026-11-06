@@ -152,6 +152,9 @@ def _collect_lessons(http, settings: Settings) -> tuple[list[Lesson], str]:
 def run(settings: Settings, reporter: Reporter) -> int:
     """Entry point used by the CLI. Returns a process exit code."""
     require_tools()
+    from .runtime import ensure_chromium
+
+    ensure_chromium()
 
     cookies, source = resolve_cookies(settings.cookies_file, settings.browser)
     reporter.cookies_loaded(source, len(cookies))
