@@ -18,7 +18,7 @@ cd /content
 git clone https://github.com/EhsanShahbazii/Greenoly-Course-Downloader.git
 cd Greenoly-Course-Downloader
 python -m pip install -r requirements-telegram.txt
-python scripts/drive_to_telegram.py
+python -u scripts/drive_to_telegram.py
 ```
 
 مخزن فعلاً خصوصی است؛ clone نیاز به دسترسی گیت‌هاب دارد. اگر git نام کاربری و رمز خواست، نام کاربری گیت‌هاب و Personal Access Token دارای دسترسی خواندن این مخزن را وارد کن؛ رمز معمول حساب کاربرد ندارد. توکن را در URL، سلول ذخیره‌شده یا چت قرار نده. اگر مخزن قبلاً clone شده، به‌جای clone داخل آن `git pull --ff-only` اجرا کن.
@@ -28,7 +28,7 @@ python scripts/drive_to_telegram.py
 مسیر پیش‌فرض دوره‌ها `/content/drive/MyDrive/GreenOly` است. هر زیرپوشهٔ مستقیم یک دوره محسوب می‌شود. برای انتخاب مقصد از طریق محل ارسال فرمان، بدون `--target` اجرا کن:
 
 ```sh
-python scripts/drive_to_telegram.py \
+python -u scripts/drive_to_telegram.py \
   --root '/content/drive/MyDrive/GreenOly'
 ```
 

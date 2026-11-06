@@ -51,10 +51,17 @@ def save_json(path: Path, data):
     temp.replace(path)
 
 
-def catalog(root: Path, path: Path) -> list[str]:
+def catalog(root: Path, path: Path, progress=None) -> list[str]:
     names = json.loads(path.read_text()) if path.exists() else []
-    new = sorted((p.name for p in root.iterdir() if p.is_dir()
-                  and not p.name.startswith('.') and p.name not in names and videos(p)), key=natural)
+    new = []
+    for folder in sorted(root.iterdir(), key=lambda p: natural(p.name)):
+        if not folder.is_dir() or folder.name.startswith('.') or folder.name in names:
+            continue
+        if progress:
+            progress(f'Checking course: {folder.name}')
+        # Stop at the first video; listing every lesson here is unnecessary.
+        if any(p.suffix.lower() in VIDEO_EXTENSIONS and p.is_file() for p in folder.rglob('*')):
+            new.append(folder.name)
     names.extend(new)
     save_json(path, names)
     return names
@@ -71,13 +78,16 @@ def parse_range(text: str, count: int) -> list[int]:
 
 
 async def run(args):
+    print('Starting Telegram uploader...', flush=True)
     from telethon import TelegramClient, events
     from telethon.errors import FloodWaitError
 
     root = args.root.expanduser().resolve()
+    print(f'Checking Drive mount: {root}', flush=True)
     if not root.is_dir():
         raise SystemExit(f'Drive folder not found: {root}; mount Drive first.')
     state = args.state_dir.expanduser().resolve()
+    print(f'Opening session/state folder: {state}', flush=True)
     state.mkdir(parents=True, exist_ok=True)
     state.chmod(0o700)
     # Prevent two processes from sending the same queue with the same state.
@@ -91,15 +101,29 @@ async def run(args):
     if binding.exists() and json.loads(binding.read_text()) != str(root):
         raise SystemExit('This state directory belongs to another source; use a different --state-dir.')
     save_json(binding, str(root))
-    names = catalog(root, state / 'courses.json')
     checkpoint = state / 'sent.json'
     sent = json.loads(checkpoint.read_text()) if checkpoint.exists() else {}
     api_id = int(os.environ.get('TG_API_ID') or input('api_id: '))
     api_hash = os.environ.get('TG_API_HASH') or getpass.getpass('api_hash: ')
     client = TelegramClient(str(state / 'account'), api_id, api_hash,
                             flood_sleep_threshold=0, sequential_updates=False)
-    await client.start()
-    me = await client.get_me()
+    print('Connecting to Telegram (30-second connection timeout)...', flush=True)
+    try:
+        await asyncio.wait_for(client.connect(), timeout=30)
+        print('Logging in; an existing authorized session does not need a new code.', flush=True)
+        await client.start(
+            phone=lambda: input('Telegram phone number (e.g. +989...): '),
+            code_callback=lambda: getpass.getpass('Telegram login code: '),
+        )
+        me = await client.get_me()
+        print(f'Logged in: account ID {me.id}', flush=True)
+        print('Scanning course folders...', flush=True)
+        names = catalog(root, state / 'courses.json', progress=lambda text: print(text, flush=True))
+        print(f'Courses indexed: {len(names)}', flush=True)
+    except BaseException:
+        await client.disconnect()
+        lock.close()
+        raise
     stop = asyncio.Event()
     task = None
     status = 'آماده'

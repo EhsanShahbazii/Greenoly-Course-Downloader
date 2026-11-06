@@ -58,7 +58,10 @@ class UploadFlowTests(unittest.IsolatedAsyncioTestCase):
             def __init__(self, *args, **kwargs):
                 pass
 
-            async def start(self):
+            async def connect(self):
+                pass
+
+            async def start(self, **kwargs):
                 pass
 
             async def get_me(self):
