@@ -23,7 +23,7 @@ except ImportError:  # pragma: no cover - fallback path
 def tool_path(name: str) -> str | None:
     """Find a tool on PATH or shipped next to the (frozen) executable."""
     found = shutil.which(name)
-    if found:
+    if found and not getattr(sys, "frozen", False):
         return found
     candidates = []
     if getattr(sys, "frozen", False):
@@ -44,8 +44,8 @@ def tool_path(name: str) -> str | None:
 
             return imageio_ffmpeg.get_ffmpeg_exe()
         except Exception:  # noqa: BLE001 - optional dependency
-            return None
-    return None
+            return found
+    return found
 
 
 def require_tools() -> None:

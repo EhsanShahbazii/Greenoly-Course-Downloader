@@ -73,6 +73,20 @@ def main() -> int:
     )
 
     bundle = DIST / APP_NAME
+    # Keep browsers outside PyInstaller's signing/collection process. This
+    # preserves the vendor-signed Chrome.app on macOS and ships it on all OSes.
+    browser_dir = bundle / "browsers"
+    browser_dir.mkdir(parents=True, exist_ok=True)
+    env = dict(os.environ, PLAYWRIGHT_BROWSERS_PATH=str(browser_dir))
+    run([sys.executable, "-m", "playwright", "install", "chromium"], env=env)
+    if platform.system() == "Darwin":
+        launcher = bundle / "Start.command"
+        launcher.write_text('#!/bin/sh\ncd "$(dirname "$0")" || exit 1\nexec ./GreenOly\n')
+        launcher.chmod(0o755)
+    elif platform.system() == "Linux":
+        launcher = bundle / "Start.sh"
+        launcher.write_text('#!/bin/sh\ncd "$(dirname "$0")" || exit 1\nexec ./GreenOly\n')
+        launcher.chmod(0o755)
     for extra in ("README.md", "requirements.txt"):
         source = ROOT / extra
         if source.exists():
@@ -80,9 +94,13 @@ def main() -> int:
 
     tag = platform_tag()
     archive = DIST / f"{APP_NAME}-{tag}.zip"
-    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
-        for path in bundle.rglob("*"):
-            zf.write(path, path.relative_to(bundle.parent))
+    if platform.system() == "Darwin":
+        # ditto preserves Chromium's framework symlinks and executable modes.
+        run(["ditto", "-c", "-k", "--keepParent", str(bundle), str(archive)])
+    else:
+        with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
+            for path in bundle.rglob("*"):
+                zf.write(path, path.relative_to(bundle.parent))
 
     size_mb = archive.stat().st_size / (1024 * 1024)
     print(f"\nBuilt {archive} ({size_mb:.0f} MB)")

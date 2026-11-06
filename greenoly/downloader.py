@@ -119,7 +119,7 @@ def download_lesson(
 
 def _build_headers(url: str) -> dict:
     return {
-        "Referer": course_base_from_url(url) + "/",
+        "Referer": requests.utils.requote_uri(course_base_from_url(url) + "/"),
         "Origin": "https://greenoly.tv",
         "Accept": "*/*",
     }
@@ -156,7 +156,9 @@ def run(settings: Settings, reporter: Reporter) -> int:
 
     ensure_chromium()
 
-    cookies, source = resolve_cookies(settings.cookies_file, settings.browser)
+    cookies, source = resolve_cookies(
+        settings.cookies_file, settings.browser, interactive=settings.interactive
+    )
     reporter.cookies_loaded(source, len(cookies))
     http = build_session(cookies)
 

@@ -15,6 +15,8 @@ def load_netscape_cookies(path: str | Path) -> list[dict]:
     cookies: list[dict] = []
     with open(path, "r", encoding="utf-8", errors="ignore") as handle:
         for line in handle:
+            if line.startswith("#HttpOnly_"):
+                line = line[len("#HttpOnly_"):]
             if not line.strip() or line.startswith("#"):
                 continue
             parts = line.rstrip("\n").split("\t")
@@ -36,7 +38,7 @@ def _jar_to_dicts(jar: http.cookiejar.CookieJar, domain: str) -> list[dict]:
     cookies: list[dict] = []
     for cookie in jar:
         host = (cookie.domain or "").lstrip(".")
-        if domain and domain not in host:
+        if domain and host != domain and not host.endswith("." + domain):
             continue
         cookies.append(
             {
@@ -97,8 +99,23 @@ def build_session(cookies: list[dict]) -> requests.Session:
 def resolve_cookies(
     cookies_file: str | Path | None,
     browser: str | None,
+    interactive: bool = False,
 ) -> tuple[list[dict], str]:
     """Return ``(cookies, source_description)`` from a file or the browser."""
+    if interactive:
+        try:
+            return resolve_cookies(cookies_file, browser)
+        except (SystemExit, Exception):
+            print("Could not read cookies. Log in to greenoly.tv in your browser first.")
+            print("Or export greenoly.tv cookies in Netscape cookies.txt format.")
+            while True:
+                path = input("Paste or drag the cookies.txt file here (Enter to cancel): ").strip()
+                if not path:
+                    raise SystemExit("No cookies supplied.")
+                try:
+                    return resolve_cookies(cookie_file_path(path), browser)
+                except (SystemExit, Exception):
+                    print("Could not load that file. Please use a Netscape cookies.txt export.")
     if cookies_file:
         path = Path(cookies_file)
         if not path.exists():
@@ -108,3 +125,19 @@ def resolve_cookies(
             raise SystemExit(f"No cookies parsed from {path}")
         return cookies, f"file {path.name}"
     return cookies_from_browser(browser or "auto")
+
+
+def cookie_file_path(value: str) -> Path:
+    """Accept quoted file paths and files dragged into a macOS/Linux terminal."""
+    import os
+    import shlex
+
+    value = value.strip()
+    if os.name != "nt":
+        try:
+            parts = shlex.split(value)
+            if len(parts) == 1:
+                value = parts[0]
+        except ValueError:
+            pass
+    return Path(value.strip("\"'")).expanduser()

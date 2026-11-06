@@ -10,6 +10,8 @@ downloads/
 __pycache__/
 *.py[cod]
 .venv/
+.venv-*/
+offline/
 venv/
 *.egg-info/
 build/

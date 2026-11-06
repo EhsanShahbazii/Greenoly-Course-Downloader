@@ -1,17 +1,21 @@
-"""Runtime prerequisites for the standalone build.
-
-Chromium cannot be shipped inside the PyInstaller bundle on macOS (code-signing
-fails on the Chrome for Testing app), so it is downloaded once on first run and
-then reused from the Playwright cache.
-"""
+"""Use the browser shipped beside the executable, or the source install cache."""
 
 from __future__ import annotations
 
 import subprocess
 import sys
+import os
+from pathlib import Path
+
+
+def configure_browser_path() -> None:
+    if is_frozen():
+        bundled = Path(sys.executable).resolve().parent / "browsers"
+        os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(bundled)
 
 
 def chromium_path() -> str | None:
+    configure_browser_path()
     try:
         from playwright.sync_api import sync_playwright
 
@@ -42,6 +46,11 @@ def ensure_chromium(on_progress=None) -> str:
     """Install Chromium if missing and return its executable path."""
     if chromium_ready():
         return chromium_path() or ""
+    if is_frozen():
+        raise SystemExit(
+            "Bundled Chromium is missing. Extract the complete release archive, "
+            "including the browsers folder, and try again."
+        )
     if on_progress:
         on_progress("Downloading Chromium (one time, ~150 MB)...")
     try:
@@ -64,3 +73,39 @@ def ensure_chromium(on_progress=None) -> str:
 
 def is_frozen() -> bool:
     return bool(getattr(sys, "frozen", False))
+
+
+def self_test() -> None:
+    """Exercise the shipped browser, crypto and ffmpeg without network access."""
+    from playwright.sync_api import sync_playwright
+    from .media import HAS_CRYPTOGRAPHY, decrypt_segment, tool_path
+
+    if not HAS_CRYPTOGRAPHY:
+        raise RuntimeError("cryptography is missing from the build")
+    decrypted = decrypt_segment(
+        bytes.fromhex("3ad77bb40d7a3660a89ecaf32466ef97"),
+        bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c"),
+        bytes(16),
+    )
+    if decrypted != bytes.fromhex("6bc1bee22e409f96e93d7e117393172a"):
+        raise RuntimeError("AES decryption self-test failed")
+    ensure_chromium()
+    if is_frozen():
+        bundled = Path(sys.executable).resolve().parent / "browsers"
+        if not Path(chromium_path()).resolve().is_relative_to(bundled):
+            raise RuntimeError("Chromium is not using the portable browser folder")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            page = browser.new_page()
+            page.set_content("<title>GreenOly browser ready</title>")
+            assert page.title() == "GreenOly browser ready"
+        finally:
+            browser.close()
+    ffmpeg = tool_path("ffmpeg")
+    if ffmpeg is None:
+        raise RuntimeError("ffmpeg is missing")
+    if is_frozen() and not Path(ffmpeg).resolve().is_relative_to(Path(sys.executable).resolve().parent):
+        raise RuntimeError("ffmpeg is not using the portable bundle")
+    subprocess.run([ffmpeg, "-version"], check=True, stdout=subprocess.DEVNULL)
+    print("PASS: bundled Chromium, cryptography and ffmpeg (no network needed)")

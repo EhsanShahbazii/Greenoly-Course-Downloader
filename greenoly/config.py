@@ -49,6 +49,7 @@ class Settings:
     quality: str = "best"
     retries: int = DEFAULT_RETRIES
     quiet: bool = False
+    interactive: bool = False
 
     @property
     def max_height(self) -> int | None:
