@@ -78,10 +78,10 @@ def is_frozen() -> bool:
 def self_test() -> None:
     """Exercise the shipped browser, crypto and ffmpeg without network access."""
     from playwright.sync_api import sync_playwright
-    from .media import HAS_CRYPTOGRAPHY, decrypt_segment, tool_path
+    from .media import CRYPTOGRAPHY_IMPORT_ERROR, HAS_CRYPTOGRAPHY, decrypt_segment, tool_path
 
     if not HAS_CRYPTOGRAPHY:
-        raise RuntimeError("cryptography is missing from the build")
+        raise RuntimeError(f"cryptography could not load: {CRYPTOGRAPHY_IMPORT_ERROR}")
     decrypted = decrypt_segment(
         bytes.fromhex("3ad77bb40d7a3660a89ecaf32466ef97"),
         bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c"),

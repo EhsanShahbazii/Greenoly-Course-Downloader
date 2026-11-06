@@ -40,6 +40,7 @@ def platform_tag() -> str:
 def main() -> int:
     run([sys.executable, "-m", "pip", "install", "-q", "-r", "requirements.txt"])
     run([sys.executable, "-m", "pip", "install", "-q", "pyinstaller>=6.6"])
+    run([sys.executable, "-c", "from cryptography.hazmat.primitives.ciphers import Cipher; import _cffi_backend"])
 
     run(
         [
@@ -66,8 +67,12 @@ def main() -> int:
             "browser_cookie3",
             "--hidden-import",
             "Cryptodome",
-            "--hidden-import",
+            "--collect-all",
             "cryptography",
+            "--collect-all",
+            "cffi",
+            "--hidden-import",
+            "_cffi_backend",
             "greenoly.py",
         ]
     )

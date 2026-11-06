@@ -16,8 +16,10 @@ try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
     HAS_CRYPTOGRAPHY = True
-except ImportError:  # pragma: no cover - fallback path
+    CRYPTOGRAPHY_IMPORT_ERROR = None
+except ImportError as exc:  # pragma: no cover - fallback path
     HAS_CRYPTOGRAPHY = False
+    CRYPTOGRAPHY_IMPORT_ERROR = str(exc)
 
 
 def tool_path(name: str) -> str | None:
