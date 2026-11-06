@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ordered Drive-folder uploader controlled by your own Saved Messages."""
+"""Read-only Drive uploader: send your own /gr command in the destination chat."""
 from __future__ import annotations
 
 import argparse
@@ -100,25 +100,20 @@ async def run(args):
                             flood_sleep_threshold=0, sequential_updates=False)
     await client.start()
     me = await client.get_me()
-    target_input = int(args.target) if args.target.lstrip('-').isdigit() else args.target
-    target = await client.get_input_entity(target_input)
-    from telethon import utils
-    target_id = str(me.id if args.target in ('me', 'self') else utils.get_peer_id(target))
     stop = asyncio.Event()
     task = None
     status = 'آماده'
 
-    async def notify(text):
-        # All control/progress replies go to Saved Messages, never the upload channel.
+    async def notify(text, destination):
         for offset in range(0, len(text), 3000):
             while True:
                 try:
-                    await client.send_message('me', text[offset:offset + 3000], parse_mode=None)
+                    await client.send_message(destination, text[offset:offset + 3000], parse_mode=None)
                     break
                 except FloodWaitError as exc:
                     await asyncio.sleep(exc.seconds + 1)
 
-    async def upload(indexes):
+    async def upload(indexes, target, target_id, origin):
         nonlocal status
         completed = skipped = 0
         try:
@@ -129,7 +124,7 @@ async def run(args):
                 for file in videos(course):
                     if stop.is_set():
                         status = 'متوقف شد؛ اجرای دوباره فایل‌های ثبت‌شده را رد می‌کند.'
-                        await notify(status)
+                        await notify(status, origin)
                         return
                     stat = file.stat()
                     if not stat.st_size:
@@ -162,7 +157,7 @@ async def run(args):
                             print(status, flush=True)
                             try:
                                 await asyncio.wait_for(stop.wait(), timeout=exc.seconds + 1)
-                                await notify('متوقف شد.')
+                                await notify('متوقف شد.', origin)
                                 return
                             except asyncio.TimeoutError:
                                 pass
@@ -171,42 +166,60 @@ async def run(args):
                     completed += 1
                     await asyncio.sleep(args.delay)
             status = f'تمام شد؛ ارسال: {completed}، قبلاً ارسال‌شده: {skipped}'
-            await notify(status)
+            await notify(status, origin)
         except Exception as exc:
             # Stop at the first failure to preserve ordering; never delete Drive files.
             status = f'ارسال متوقف شد: {type(exc).__name__}: {exc}'
             print(status, flush=True)
-            await notify(status + '\nبعد از رفع خطا، همان بازه را دوباره بفرست.')
+            await notify(status + '\nبعد از رفع خطا، همان بازه را دوباره بفرست.', origin)
 
-    @client.on(events.NewMessage(outgoing=True, pattern=r'^/gr(?:\s|$)'))
+    @client.on(events.NewMessage(outgoing=True, forwards=False, pattern=r'^/gr(?:\s|$)'))
     async def command(event):
         nonlocal task, names
-        if event.sender_id != me.id or event.chat_id != me.id:
+        # Broadcast posts may identify the channel as sender. Require outgoing,
+        # including in that case; never accept another user's incoming command.
+        if not event.out or getattr(event, 'fwd_from', None):
             return
+        if event.sender_id != me.id and not (
+            event.is_channel and event.sender_id == event.chat_id
+        ):
+            return
+        origin = await event.get_input_chat()
+
+        async def reply(text):
+            await notify(text, origin)
+
         text = event.raw_text[3:].strip()
         if text in ('', 'help'):
-            await notify('راهنما:\n/gr list — شماره دوره‌ها\n/gr 1-12 — ارسال بازه\n/gr 3 — یک دوره\n/gr status — وضعیت\n/gr stop — توقف بعد از فایل فعلی\nمقصد: ' + args.target)
+            await reply('راهنما:\n/gr list — شماره دوره‌ها\n/gr 1-12 — ارسال بازه\n/gr 3 — یک دوره\n/gr status — وضعیت\n/gr stop — توقف بعد از فایل فعلی\nمقصد: ' + (args.target or 'همین گفتگو'))
         elif text == 'list':
             names = catalog(root, state / 'courses.json')
-            await notify('\n'.join(f'{i + 1}. {n}' for i, n in enumerate(names)) or 'دوره‌ای پیدا نشد.')
+            await reply('\n'.join(f'{i + 1}. {n}' for i, n in enumerate(names)) or 'دوره‌ای پیدا نشد.')
         elif text == 'status':
-            await notify(status)
+            await reply(status)
         elif text == 'stop':
             stop.set()
-            await notify('درخواست توقف ثبت شد؛ ارسال فایل فعلی ممکن است ادامه پیدا کند.')
+            await reply('درخواست توقف ثبت شد؛ ارسال فایل فعلی ممکن است ادامه پیدا کند.')
         elif task and not task.done():
-            await notify('یک ارسال فعال است. ابتدا /gr status یا /gr stop را بفرست.')
+            await reply('یک ارسال فعال است. ابتدا /gr status یا /gr stop را بفرست.')
         else:
             try:
                 indexes = parse_range(text, len(names))
             except ValueError as exc:
-                await notify(str(exc))
+                await reply(str(exc))
                 return
+            if args.target:
+                value = int(args.target) if args.target.lstrip('-').isdigit() else args.target
+                target = await client.get_input_entity(value)
+                from telethon import utils
+                target_id = str(me.id if args.target in ('me', 'self') else utils.get_peer_id(target))
+            else:
+                target, target_id = origin, str(event.chat_id)
             stop.clear()
-            await notify(f'شروع ارسال {len(indexes)} دوره به {args.target}')
-            task = asyncio.create_task(upload(indexes))
+            await reply(f'شروع ارسال {len(indexes)} دوره؛ مقصد: {args.target or event.chat_id}')
+            task = asyncio.create_task(upload(indexes, target, target_id, origin))
 
-    print('Ready. Send /gr list in your Telegram Saved Messages.', flush=True)
+    print('Ready. Send /gr list in any destination chat/channel. Drive videos are never deleted.', flush=True)
     try:
         await client.run_until_disconnected()
     finally:
@@ -221,7 +234,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path('/content/drive/MyDrive/GreenOly'))
     parser.add_argument('--state-dir', type=Path, default=Path('/content/drive/MyDrive/.telegram-upload'))
-    parser.add_argument('--target', default='me', help='me, @channel, or numeric chat ID')
+    parser.add_argument('--target', help='Optional destination override; default: chat containing your /gr command')
     parser.add_argument('--delay', type=float, default=3, help='Seconds between videos')
     args = parser.parse_args()
     if args.delay < 0:

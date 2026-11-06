@@ -51,6 +51,7 @@ class UploadPlanTests(unittest.TestCase):
 class UploadFlowTests(unittest.IsolatedAsyncioTestCase):
     async def test_owner_control_order_and_persistent_resume_without_network(self):
         uploads = []
+        destinations = []
         notes = []
 
         class FakeClient:
@@ -71,6 +72,7 @@ class UploadFlowTests(unittest.IsolatedAsyncioTestCase):
 
             async def send_file(self, target, file, **kwargs):
                 uploads.append(Path(file).name)
+                destinations.append(target)
                 self.test_caption = kwargs['caption']
                 return types.SimpleNamespace(id=len(uploads))
 
@@ -81,14 +83,23 @@ class UploadFlowTests(unittest.IsolatedAsyncioTestCase):
                 return register
 
             async def run_until_disconnected(self):
-                # Commands from other accounts/chats must not start a queue.
-                await self.handler(types.SimpleNamespace(sender_id=456, chat_id=123, raw_text='/gr 1'))
-                await self.handler(types.SimpleNamespace(sender_id=123, chat_id=999, raw_text='/gr 1'))
+                def event(sender, chat, outgoing=True, channel=False):
+                    async def input_chat():
+                        return chat
+                    return types.SimpleNamespace(sender_id=sender, chat_id=chat, out=outgoing,
+                                                 is_channel=channel, fwd_from=None,
+                                                 raw_text='/gr 1', get_input_chat=input_chat)
+                # Incoming and other-user commands must not start a queue.
+                await self.handler(event(456, 999, outgoing=False))
+                await self.handler(event(-100888, -100888, outgoing=False, channel=True))
+                await self.handler(event(456, 999))
                 await asyncio.sleep(0)
                 if uploads:
                     raise AssertionError('Unauthorized command accepted')
-                for _ in range(2):
-                    await self.handler(types.SimpleNamespace(sender_id=123, chat_id=123, raw_text='/gr 1'))
+                # Repeat in one chat, then post as a broadcast channel elsewhere.
+                for _, command in enumerate([event(123, 999), event(123, 999),
+                                              event(-100888, -100888, channel=True)]):
+                    await self.handler(command)
                     for attempt in range(200):
                         if sum(note.startswith('تمام شد') for note in notes) >= _ + 1:
                             break
@@ -109,14 +120,17 @@ class UploadFlowTests(unittest.IsolatedAsyncioTestCase):
             root = Path(d) / 'courses'; course = root / 'دوره'; course.mkdir(parents=True)
             for name in ['010 - ده.mp4', '001 - یک.mp4']:
                 (course / name).write_bytes(b'video')
-            args = types.SimpleNamespace(root=root, state_dir=Path(d) / 'state', target='me', delay=0)
+            args = types.SimpleNamespace(root=root, state_dir=Path(d) / 'state', target=None, delay=0)
             with patch.dict('sys.modules', {'telethon': fake, 'telethon.errors': errors}), patch.dict(
                 'os.environ', {'TG_API_ID': '1', 'TG_API_HASH': 'dummy'}
             ):
                 await uploader.run(args)
-            self.assertEqual(uploads, ['001 - یک.mp4', '010 - ده.mp4'])
+            self.assertEqual(uploads, ['001 - یک.mp4', '010 - ده.mp4'] * 2)
+            self.assertEqual(destinations, [999, 999, -100888, -100888])
             self.assertTrue(any('قبلاً ارسال‌شده: 2' in note for note in notes))
             self.assertEqual(len(list(course.glob('*.mp4'))), 2)
+            for file in course.glob('*.mp4'):
+                self.assertEqual(file.read_bytes(), b'video')
 
 
 if __name__ == '__main__':
