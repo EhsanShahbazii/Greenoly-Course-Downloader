@@ -55,6 +55,32 @@ brew install ffmpeg openssl
 sudo apt install ffmpeg openssl
 ```
 
+### 🪟 ویندوز
+
+```powershell
+git clone https://github.com/EhsanShahbazii/Greenoly-Course-Downloader.git
+cd Greenoly-Course-Downloader
+
+python -m venv .venv
+.venv\Scripts\activate
+
+pip install -r requirements.txt
+python -m playwright install chromium
+
+winget install Gyan.FFmpeg
+winget install ShiningLight.OpenSSL.Light
+```
+
+بعد از نصب، ترمینال را ببند و دوباره باز کن تا `ffmpeg` و `openssl` در `PATH` باشند.
+سپس:
+
+```powershell
+python greenoly.py "https://greenoly.tv/courses/<slug>/lessons/<id>" --browser chrome
+```
+
+> اگر `openssl` پیدا نشد، مسیر نصب را دستی اضافه کن:
+> `setx PATH "%PATH%;C:\Program Files\OpenSSL-Win64\bin"`
+
 ## 🎬 اجرا
 
 ساده‌ترین حالت — کوکی مستقیم از مرورگر خوانده می‌شود:
