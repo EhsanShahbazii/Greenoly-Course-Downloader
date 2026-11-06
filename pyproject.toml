@@ -13,6 +13,8 @@ dependencies = [
     "playwright>=1.40",
     "rich>=13.7",
     "browser-cookie3>=0.19",
+    "cryptography>=42.0",
+    "imageio-ffmpeg>=0.5",
 ]
 
 [project.scripts]

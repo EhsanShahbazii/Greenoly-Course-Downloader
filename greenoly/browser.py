@@ -56,7 +56,10 @@ _CAPTURE_HOOK = r"""
     }
     variants.sort((a, b) => (b.px - a.px) || (b.bw - a.bw));
     cap.variant = variants[0].url;
-    return '#EXTM3U\n' + variants.map(v => v.hdr + '\n' + v.url).join('\n') + '\n';
+    // Keep only the winning rendition: the player's ABR would otherwise drop
+    // to a lower bitrate as soon as it starts measuring the connection.
+    const best = variants.filter(v => v.px === variants[0].px);
+    return '#EXTM3U\n' + best.map(v => v.hdr + '\n' + v.url).join('\n') + '\n';
   }
 
   const original = TextDecoder.prototype.decode;

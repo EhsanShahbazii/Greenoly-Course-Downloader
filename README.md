@@ -34,6 +34,26 @@
 
 ## 🚀 نصب
 
+### 📦 نسخهٔ آماده (بدون نصب) — پیشنهادی
+
+از صفحهٔ [Releases](https://github.com/EhsanShahbazii/Greenoly-Course-Downloader/releases)
+فایل مناسب سیستم‌ات را دانلود کن، زیپ را باز کن و اجرا کن:
+
+| سیستم | فایل | اجرا |
+| --- | --- | --- |
+| macOS (Apple Silicon) | `GreenOly-macos-arm64.zip` | دابل‌کلیک روی `GreenOly` |
+| macOS (Intel) | `GreenOly-macos-x64.zip` | دابل‌کلیک روی `GreenOly` |
+| Windows 10/11 | `GreenOly-windows-x64.zip` | دابل‌کلیک روی `GreenOly.exe` |
+| Linux | `GreenOly-linux-x64.zip` | `./GreenOly` |
+
+همه‌چیز داخل فایل هست: Chromium، ffmpeg و کتابخانه‌های پایتون. **هیچ نصبی لازم نیست.**
+برنامه باز می‌شود، لینک درس را می‌دهی و دانلود شروع می‌شود.
+
+> 🍎 اگر مک پیام «برنامه آسیب‌دیده» داد، یک‌بار این را در ترمینال بزن:
+> `xattr -dr com.apple.quarantine GreenOly`
+
+### 🧑‍💻 نصب از سورس
+
 ```bash
 git clone https://github.com/EhsanShahbazii/Greenoly-Course-Downloader.git
 cd Greenoly-Course-Downloader

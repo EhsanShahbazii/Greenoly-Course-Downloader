@@ -1,29 +1,81 @@
-"""Segment decryption and MP4 remuxing."""
+"""Segment decryption and MP4 remuxing.
+
+Decryption prefers the ``cryptography`` package (fast, pure wheels, no external
+binary) and falls back to the ``openssl`` CLI. ffmpeg is always required for the
+final remux and is looked up next to the executable so a bundled build works.
+"""
 
 from __future__ import annotations
 
 import os
 import shutil
 import subprocess
+import sys
+
+try:
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
+    HAS_CRYPTOGRAPHY = True
+except ImportError:  # pragma: no cover - fallback path
+    HAS_CRYPTOGRAPHY = False
+
+
+def tool_path(name: str) -> str | None:
+    """Find a tool on PATH or shipped next to the (frozen) executable."""
+    found = shutil.which(name)
+    if found:
+        return found
+    candidates = []
+    if getattr(sys, "frozen", False):
+        candidates.append(os.path.dirname(sys.executable))
+    bundle = getattr(sys, "_MEIPASS", None)
+    if bundle:
+        candidates.append(bundle)
+    for folder in candidates:
+        for suffix in ("", ".exe"):
+            candidate = os.path.join(folder, name + suffix)
+            if os.path.exists(candidate):
+                return candidate
+    if name == "ffmpeg":
+        # imageio-ffmpeg ships a static ffmpeg for macOS/Windows/Linux, which is
+        # what makes the standalone builds work without installing anything.
+        try:
+            import imageio_ffmpeg
+
+            return imageio_ffmpeg.get_ffmpeg_exe()
+        except Exception:  # noqa: BLE001 - optional dependency
+            return None
+    return None
 
 
 def require_tools() -> None:
-    missing = [tool for tool in ("ffmpeg", "openssl") if shutil.which(tool) is None]
+    required = ["ffmpeg"]
+    if not HAS_CRYPTOGRAPHY:
+        required.append("openssl")
+    missing = [tool for tool in required if tool_path(tool) is None]
     if missing:
         raise SystemExit(
             "Missing required tools: "
             + ", ".join(missing)
-            + "\n  macOS: brew install ffmpeg openssl"
+            + "\n  macOS: brew install ffmpeg\n  Windows: winget install Gyan.FFmpeg"
         )
 
 
 def decrypt_segment(encrypted: bytes, key: bytes | None, iv: bytes | None) -> bytes:
-    """AES-128-CBC decrypt one HLS segment with the openssl CLI."""
+    """AES-128-CBC decrypt one HLS segment."""
     if not key:
         return encrypted
+    if HAS_CRYPTOGRAPHY:
+        decryptor = Cipher(
+            algorithms.AES(key), modes.CBC(iv or bytes(16))
+        ).decryptor()
+        return decryptor.update(encrypted) + decryptor.finalize()
+    openssl = tool_path("openssl")
+    if openssl is None:
+        raise RuntimeError("Neither cryptography nor openssl is available")
     process = subprocess.run(
         [
-            "openssl",
+            openssl,
             "enc",
             "-d",
             "-aes-128-cbc",
@@ -51,9 +103,12 @@ def concat_files(paths: list[str], destination: str) -> None:
 def remux_to_mp4(source: str, destination: str) -> None:
     """Stream-copy the concatenated transport stream into a proper MP4."""
     os.makedirs(os.path.dirname(destination) or ".", exist_ok=True)
+    ffmpeg = tool_path("ffmpeg")
+    if ffmpeg is None:
+        raise RuntimeError("ffmpeg not found")
     process = subprocess.run(
         [
-            "ffmpeg",
+            ffmpeg,
             "-hide_banner",
             "-loglevel",
             "error",

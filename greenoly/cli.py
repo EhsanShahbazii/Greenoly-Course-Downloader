@@ -124,6 +124,11 @@ def _list_lessons(args, console) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:]) if argv is None else list(argv)
+    interactive = not argv and sys.stdin.isatty()
+    if interactive:
+        argv = _prompt_for_url()
+
     args = build_parser().parse_args(argv)
     quiet = args.quiet or not sys.stdout.isatty() or not RICH_AVAILABLE
     console = make_console(quiet=quiet) if RICH_AVAILABLE else None
@@ -160,7 +165,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         with make_reporter(console, quiet) as reporter:
-            return run(settings, reporter)
+            code = run(settings, reporter)
     except KeyboardInterrupt:
         _say(console, "\nInterrupted. Run again to resume where it stopped.")
         return 130
@@ -169,6 +174,19 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:  # noqa: BLE001 - top level guard
         _say(console, f"Error: {exc}")
         return 1
+    finally:
+        if interactive:
+            input("\nPress Enter to close...")
+    return code
+
+
+def _prompt_for_url() -> list[str]:
+    """Double-click friendly mode: ask for the URL instead of failing."""
+    print()
+    url = input("Paste the lesson or course URL: ").strip()
+    if not url:
+        raise SystemExit("No URL given.")
+    return [url]
 
 
 def _say(console, message: str) -> None:
