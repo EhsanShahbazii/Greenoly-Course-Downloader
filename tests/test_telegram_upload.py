@@ -4,7 +4,7 @@ import tempfile
 import unittest
 import asyncio
 import types
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 
 spec = importlib.util.spec_from_file_location('drive_to_telegram', Path(__file__).resolve().parents[1] / 'scripts/drive_to_telegram.py')
 uploader = importlib.util.module_from_spec(spec)
@@ -119,6 +119,7 @@ class UploadFlowTests(unittest.IsolatedAsyncioTestCase):
         fake.utils = types.SimpleNamespace(get_peer_id=lambda peer: 123)
         errors = types.ModuleType('telethon.errors')
         errors.FloodWaitError = type('FloodWaitError', (Exception,), {})
+        errors.FloodPremiumWaitError = type('FloodPremiumWaitError', (Exception,), {})
         with tempfile.TemporaryDirectory() as d:
             root = Path(d) / 'courses'; course = root / 'دوره'; course.mkdir(parents=True)
             for name in ['010 - ده.mp4', '001 - یک.mp4']:
@@ -134,6 +135,46 @@ class UploadFlowTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(list(course.glob('*.mp4'))), 2)
             for file in course.glob('*.mp4'):
                 self.assertEqual(file.read_bytes(), b'video')
+
+
+class RequestWaitTests(unittest.IsolatedAsyncioTestCase):
+    async def test_wait_retries_identical_part_without_restarting_file(self):
+        class WaitError(Exception):
+            def __init__(self, seconds):
+                self.seconds = seconds
+
+        class Base:
+            def __init__(self):
+                self.calls = []
+
+            async def _call(self, sender, request, **kwargs):
+                self.calls.append((sender, request, kwargs))
+                if len(self.calls) <= 2:
+                    raise WaitError(3)
+                return 'part saved'
+
+        class Client(uploader.WaitRetryMixin, Base):
+            _rate_wait_errors = (WaitError,)
+
+        client = Client()
+        sender, request = object(), object()
+        with patch.object(uploader.asyncio, 'sleep', new_callable=AsyncMock) as sleep:
+            result = await client._call(sender, request, ordered=True)
+        self.assertEqual(result, 'part saved')
+        self.assertEqual(sleep.await_count, 2)
+        sleep.assert_awaited_with(4)
+        self.assertEqual(client.calls, [(sender, request, {'ordered': True})] * 3)
+
+    async def test_unrelated_errors_are_not_hidden(self):
+        class Base:
+            async def _call(self, *args, **kwargs):
+                raise ValueError('invalid file')
+
+        class Client(uploader.WaitRetryMixin, Base):
+            _rate_wait_errors = (TimeoutError,)
+
+        with self.assertRaisesRegex(ValueError, 'invalid file'):
+            await Client()._call(object(), object())
 
 
 if __name__ == '__main__':

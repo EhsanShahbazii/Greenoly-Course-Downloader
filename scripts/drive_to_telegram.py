@@ -14,6 +14,20 @@ import time
 VIDEO_EXTENSIONS = {'.mp4', '.mkv', '.mov', '.webm', '.m4v', '.avi', '.ts'}
 
 
+class WaitRetryMixin:
+    """Respect RPC rate limits while preserving the current upload-part request."""
+
+    async def _call(self, *args, **kwargs):
+        while True:
+            try:
+                return await super()._call(*args, **kwargs)
+            except self._rate_wait_errors as exc:
+                seconds = max(1, exc.seconds) + 1
+                print(f'Telegram {type(exc).__name__}: waiting {seconds}s; '
+                      'then retrying the same request/upload part.', flush=True)
+                await asyncio.sleep(seconds)
+
+
 def natural(value: str):
     return tuple((0, int(p)) if p.isdecimal() else (1, p.casefold())
                  for p in re.split(r'(\d+)', value))
@@ -80,7 +94,10 @@ def parse_range(text: str, count: int) -> list[int]:
 async def run(args):
     print('Starting Telegram uploader...', flush=True)
     from telethon import TelegramClient, events
-    from telethon.errors import FloodWaitError
+    from telethon.errors import FloodWaitError, FloodPremiumWaitError
+
+    class UploadClient(WaitRetryMixin, TelegramClient):
+        _rate_wait_errors = (FloodWaitError, FloodPremiumWaitError)
 
     root = args.root.expanduser().resolve()
     print(f'Checking Drive mount: {root}', flush=True)
@@ -105,8 +122,8 @@ async def run(args):
     sent = json.loads(checkpoint.read_text()) if checkpoint.exists() else {}
     api_id = int(os.environ.get('TG_API_ID') or input('api_id: '))
     api_hash = os.environ.get('TG_API_HASH') or getpass.getpass('api_hash: ')
-    client = TelegramClient(str(state / 'account'), api_id, api_hash,
-                            flood_sleep_threshold=0, sequential_updates=False)
+    client = UploadClient(str(state / 'account'), api_id, api_hash,
+                          flood_sleep_threshold=0, sequential_updates=False)
     print('Connecting to Telegram (30-second connection timeout)...', flush=True)
     try:
         await asyncio.wait_for(client.connect(), timeout=30)
